@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive config
+.env
+*.secret
+
+# Data output (crawled data — keep out of repo)
+data/
+
+# Browser data
+browser_data/
