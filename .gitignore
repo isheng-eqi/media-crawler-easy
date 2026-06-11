@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Browser data (large)
+browser_data/
+data/
+
+# Environment
+.env
+.venv
+venv/
+
+# Node
+node_modules/
+
+# Docs cache
+docs/.vitepress/cache
+
+# Temp
+temp_image/
+*.log
+
+# Database files
+*.db
