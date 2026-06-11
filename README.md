@@ -1,6 +1,6 @@
-# MediaCrawler-Easy：多平台社媒评论采集爬虫（Claude Code Skill）
+# MediaCrawler 多平台社媒数据采集助手
 
-> B站/小红书/抖音/快手/微博/贴吧/知乎 — 扫码登录，自动采集评论，生成精美 HTML 报告 + CSV 数据。不用写代码、不用配环境。
+> 一句话：在 Claude Code 里说"帮我爬XX平台的评论"，坐等几分钟，拿到一份**已验证无误**的精美 HTML 报告。不用写代码、不用配环境。
 
 ## 📦 这是什么
 
@@ -28,7 +28,20 @@ MediaCrawler 是一个 Claude Code Skill（基于开源项目 [NanmiCoder/MediaC
 | 💬 **贴吧** | `tieba` | 关键词搜索 / 指定贴子 |
 | ❓ **知乎** | `zhihu` | 关键词搜索 / 指定问答 |
 
+## ✨ 新增功能
 
+相比原版 MediaCrawler，Skill 版新增以下能力：
+
+| 功能 | 说明 |
+|------|------|
+| 🚀 **一键环境搭建** | 自动检测 Python / Node.js / Chrome 环境，缺啥装啥 |
+| 🎯 **AI 配置引导** | 3 轮问答搞定全部配置，不用手动改配置文件 |
+| 👁️ **登录状态监控** | 实时判断登录进度，二维码/验证码/滑块异常自动提醒 |
+| 🔒 **JS 语法自动验证** | 报告生成后自动跑 `node --check`，语法无误才打开 |
+| 🧹 **一键清理工具** | 采集完一键清除临时文件，数据不受影响 |
+| 📊 **交互式 HTML 报告** | 多 Tab 切换、图表统计、词云图、评论分页（20/50/100 条） |
+
+---
 
 ## 📋 输出物
 
@@ -47,6 +60,22 @@ MediaCrawler 是一个 Claude Code Skill（基于开源项目 [NanmiCoder/MediaC
 
 3. **词云图**（可选，需勾选）
 
+## 📊 报告展示
+
+采集完成后自动生成**交互式 HTML 报告**，以下是实际效果：
+
+### 报告首页
+
+![f2fec11a7e56481c232cbc967f7740e4](C:\Users\HI\Documents\Tencent Files\15772650\nt_qq\nt_data\Pic\2026-06\Ori\f2fec11a7e56481c232cbc967f7740e4.png)
+
+![614c8aa28690b55143971a6ea2c0233c](C:\Users\HI\Documents\Tencent Files\15772650\nt_qq\nt_data\Pic\2026-06\Ori\614c8aa28690b55143971a6ea2c0233c.png)
+
+![eed9222b756b95c71de362a701d3c5fb](C:\Users\HI\Documents\Tencent Files\15772650\nt_qq\nt_data\Pic\2026-06\Ori\eed9222b756b95c71de362a701d3c5fb.png)
+
+
+
+---
+
 ## ⚙️ 前置条件
 
 ### 🖥️ 系统要求
@@ -64,7 +93,7 @@ MediaCrawler 是一个 Claude Code Skill（基于开源项目 [NanmiCoder/MediaC
 ### 📱 平台账号
 
 | 平台 | 需要账号？ | 登录方式 |
-|------|-----------|---------|
+|------|----------:|---------|
 | B站 | ✅ 需要 | 手机扫码 |
 | 小红书 | ✅ 需要 | 手机扫码 |
 | 抖音 | ✅ 需要 | 手机扫码 |

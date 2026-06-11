@@ -7,7 +7,7 @@ MediaCrawler 统一报告生成器 v5 (全平台通用)
 - 每条评论关联其所属内容条目（视频/笔记/帖子）
 - Base64 + TextDecoder 避免中文乱码
 """
-import csv, os, sys, glob, datetime, shutil, json, html as html_mod, base64, re
+import csv, os, sys, glob, datetime, shutil, json, html as html_mod, base64, re, subprocess
 
 CRAWLED_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_DIR = os.path.join(CRAWLED_DIR, "MediaCrawler")
@@ -26,6 +26,9 @@ PLATFORM_LABELS = {
 PLATFORM_ICONS = {
     "bili": "📹", "xhs": "📝", "dy": "🎵", "douyin": "🎵", "ks": "📱", "wb": "📢", "tieba": "💬", "zhihu": "❓",
 }
+CRAWL_TYPE_DISPLAY = {
+    "search": "搜索", "creator": "创作者", "detail": "指定链接",
+}
 
 def read_csv(path):
     if not path or not os.path.isfile(path): return []
@@ -37,10 +40,57 @@ def read_csv(path):
         except:
             return []
 
-def find_latest_csv(data_dir, prefix):
-    pattern = os.path.join(data_dir, "csv", f"{prefix}_*.csv")
-    files = sorted(glob.glob(pattern), reverse=True)
-    return files[0] if files else None
+def read_jsonl(path):
+    """读取 JSONL 文件，返回 list[dict]"""
+    if not path or not os.path.isfile(path): return []
+    rows = []
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try: rows.append(json.loads(line))
+                    except json.JSONDecodeError: continue
+    except: return []
+    return rows
+
+def jsonl_to_csv(jsonl_path, csv_path):
+    """将 JSONL 文件转换为 CSV"""
+    rows = read_jsonl(jsonl_path)
+    if not rows: return False
+    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+    with open(csv_path, 'w', encoding='utf-8-sig', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        w.writeheader()
+        w.writerows(rows)
+    return True
+
+def auto_convert_platform_jsonl(platform_dir):
+    """将 jsonl/ 下所有 JSONL 文件转为 CSV，每次生成报告前无条件执行。
+    JSONL 是数据源（爬虫追加写入），CSV 是报告生成器的输入格式。"""
+    jsonl_dir = os.path.join(platform_dir, "jsonl")
+    csv_dir = os.path.join(platform_dir, "csv")
+    if not os.path.isdir(jsonl_dir): return
+    jsonl_files = sorted(glob.glob(os.path.join(jsonl_dir, "*.jsonl")))
+    if not jsonl_files: return
+    os.makedirs(csv_dir, exist_ok=True)
+    converted = 0
+    for jf in jsonl_files:
+        name = os.path.basename(jf).replace('.jsonl', '.csv')
+        csv_path = os.path.join(csv_dir, name)
+        if jsonl_to_csv(jf, csv_path):
+            converted += 1
+    return converted
+
+def extract_date_from_filename(filename):
+    """从文件名提取日期，如 search_contents_2026-06-11.csv → 2026-06-11"""
+    m = re.search(r'(\d{4}-\d{2}-\d{2})', filename)
+    return m.group(1) if m else 'unknown'
+
+def extract_crawl_type_from_filename(filepath):
+    """从文件名提取爬取类型，如 search_contents_2026-06-11.csv → search"""
+    name = os.path.basename(filepath)
+    return name.split('_')[0] if '_' in name else 'unknown'
 
 # ── 字段自动检测 ──
 def detect_field(rows, candidates):
@@ -93,74 +143,158 @@ for _a in _sys.argv[1:]:
     elif _a == '--no-open':
         _no_open = True
 
-# 扫描...（继续原有逻辑）
+# ── 扫描数据：自动 JSONL→CSV 转换，按(平台, 爬取类型, 日期)分组（每种类型独立 tab）──
 platforms = []
+
+if not os.path.isdir(DATA_ROOT):
+    print("No data found.")
+    sys.exit(0)
+
 for pdir in sorted(os.listdir(DATA_ROOT)):
     pdir_path = os.path.join(DATA_ROOT, pdir)
-    if not os.path.isdir(pdir_path) or not os.path.isdir(os.path.join(pdir_path, "csv")):
-        continue
-    if pdir not in PLATFORM_NAMES:
-        continue
+    if not os.path.isdir(pdir_path): continue
+    if pdir not in PLATFORM_NAMES: continue
 
-    # 找文件
+    # 自动 JSONL→CSV（只转尚未存在对应 CSV 的 JSONL）
+    auto_convert_platform_jsonl(pdir_path)
+
     csv_dir = os.path.join(pdir_path, "csv")
-    all_files = sorted(glob.glob(os.path.join(csv_dir, "*.csv")), reverse=True)
+    if not os.path.isdir(csv_dir): continue
 
-    content_files = [f for f in all_files if any(t in os.path.basename(f) for t in ["_videos_","_contents_","_notes_","_threads_","_questions_"])]
-    comment_files = [f for f in all_files if "_comments_" in os.path.basename(f)]
-    creator_files = [f for f in all_files if "_creators_" in os.path.basename(f)]
+    # 按(爬取类型, 日期)分组 CSV 文件
+    crawl_groups = {}  # (crawl_type, date) -> {content_files: [...], comment_files: [...]}
+    all_files = sorted(glob.glob(os.path.join(csv_dir, "*.csv")))
+    for f in all_files:
+        ct = extract_crawl_type_from_filename(f)
+        d = extract_date_from_filename(os.path.basename(f))
+        key = (ct, d)
+        crawl_groups.setdefault(key, {})
+        if any(t in os.path.basename(f) for t in ["_videos_","_contents_","_notes_","_threads_","_questions_"]):
+            crawl_groups[key].setdefault('content_files', []).append(f)
+        elif "_comments_" in os.path.basename(f):
+            crawl_groups[key].setdefault('comment_files', []).append(f)
 
-    content_file = content_files[0] if content_files else None
-    comment_file = comment_files[0] if comment_files else None
+    for (ct, d) in sorted(crawl_groups.keys()):
+        gf = crawl_groups[(ct, d)]
+        all_contents = []
+        for cf in gf.get('content_files', []):
+            all_contents.extend(read_csv(cf))
+        all_comments = []
+        for cmf in gf.get('comment_files', []):
+            all_comments.extend(read_csv(cmf))
+        if not all_contents and not all_comments: continue
 
-    contents = read_csv(content_file) if content_file else []
-    comments = read_csv(comment_file) if comment_file else []
+        cf = detect_content_fields(all_contents)
+        cmf = detect_comment_fields(all_comments)
 
-    if not contents and not comments:
-        continue
+        # 按 source_keyword 拆分 contents
+        kw_contents = {}  # keyword -> [contents]
+        for c in all_contents:
+            kw = c.get(cf["source_kw"], '') or c.get("source_keyword", '') if cf.get("source_kw") else ''
+            kw = kw.strip() if kw else ''
+            kw_contents.setdefault(kw, []).append(c)
+        kw_list = sorted(kw_contents.keys())
 
-    cf = detect_content_fields(contents)
-    cmf = detect_comment_fields(comments)
+        # 为每个 keyword 构建 content_map，并按 content_map 拆分 comments
+        kw_content_map = {}  # keyword -> {content_id -> {title/url/author}}
+        kw_comments = {}     # keyword -> [comments]
+        for kw in kw_list:
+            cls = kw_contents[kw]
+            cmap = {}
+            if cf.get("id") and cf.get("title"):
+                for c in cls:
+                    cid = c.get(cf["id"], '')
+                    if cid:
+                        cmap[cid] = {
+                            "title": c.get(cf["title"], '?'),
+                            "url": c.get(cf["url"], '') if cf.get("url") else '',
+                            "author": c.get(cf["author"], '?') if cf.get("author") else '',
+                        }
+            kw_content_map[kw] = cmap
+            kw_comments[kw] = []
 
-    # 构建内容ID→索引映射
-    content_map = {}
-    if cf["id"] and cf["title"]:
-        for c in contents:
-            cid = c.get(cf["id"], '')
-            if cid:
-                content_map[cid] = {
-                    "title": c.get(cf["title"], '?'),
-                    "url": c.get(cf["url"], '') if cf["url"] else '',
-                    "author": c.get(cf["author"], '?') if cf["author"] else '',
-                }
+        # 将 comments 分配到对应 keyword 组
+        if cmf.get("parent_id"):
+            # 先合并所有 content_map 以便查找
+            full_cmap = {}
+            for cm in kw_content_map.values():
+                full_cmap.update(cm)
+            # 构建 content_id -> keyword 映射
+            cid_to_kw = {}
+            for kw, cls in kw_contents.items():
+                if cf.get("id"):
+                    for c in cls:
+                        cid = c.get(cf["id"], '')
+                        if cid:
+                            cid_to_kw[cid] = kw
 
-    # 补评论的视频信息
-    if cmf["parent_id"] and content_map:
-        for c in comments:
-            pid = c.get(cmf["parent_id"], '')
-            info = content_map.get(pid, {})
-            c['_content_title'] = info.get('title', '?')
-            c['_content_url'] = info.get('url', '')
-            c['_content_author'] = info.get('author', '')
+            for c in all_comments:
+                pid = c.get(cmf["parent_id"], '')
+                # 通过 comment parent_id 找到所属 keyword
+                parent_kw = cid_to_kw.get(pid, '')
+                if not parent_kw:
+                    # 如果 parent_id 找不到，尝试用 comment 自身的 source_keyword
+                    parent_kw = ''
+                # 写入 _content_* 元数据
+                info = full_cmap.get(pid, {})
+                c['_content_title'] = info.get('title', '?')
+                c['_content_url'] = info.get('url', '')
+                c['_content_author'] = info.get('author', '')
+                kw_comments.setdefault(parent_kw, []).append(c)
+        else:
+            # 没有 parent_id，comments 归入空 keyword 组
+            kw_comments.setdefault('', []).extend(all_comments)
+            for c in all_comments:
+                c['_content_title'] = '?'
+                c['_content_url'] = ''
+                c['_content_author'] = ''
 
-    keywords = set()
-    if cf["source_kw"]:
-        for c in contents:
-            kw = c.get(cf["source_kw"], '') or c.get("source_keyword", '')
-            if kw: keywords.add(kw)
+        # 为每个 keyword 生成独立 tab
+        ct_display = CRAWL_TYPE_DISPLAY.get(ct, ct)
+        for kw in sorted(set(list(kw_contents.keys()) + list(kw_comments.keys()))):
+            cls = kw_contents.get(kw, [])
+            cms = kw_comments.get(kw, [])
+            if not cls and not cms:
+                continue
 
-    platforms.append({
-        "key": pdir,
-        "name": PLATFORM_NAMES[pdir],
-        "emoji": PLATFORM_ICONS[pdir],
-        "label1": PLATFORM_LABELS[pdir][0],
-        "label2": PLATFORM_LABELS[pdir][1],
-        "contents": contents, "comments": comments,
-        "cf": cf, "cmf": cmf,
-        "content_map": content_map,
-        "keywords": ', '.join(sorted(keywords)) if keywords else 'N/A',
-        "content_file": content_file, "comment_file": comment_file,
-    })
+            cmap = kw_content_map.get(kw, {})
+
+            # tab 名称
+            if kw:
+                name = f"{PLATFORM_NAMES[pdir]} · {ct_display}「{kw}」({d})"
+                tab_key = f"{pdir}_{ct}_{d.replace('-', '_')}_{kw}"
+            else:
+                name = f"{PLATFORM_NAMES[pdir]} · {ct_display} ({d})"
+                tab_key = f"{pdir}_{ct}_{d.replace('-', '_')}"
+
+            platforms.append({
+                "key": tab_key,
+                "platform": pdir,
+                "crawl_type": ct,
+                "date": d,
+                "name": name,
+                "emoji": PLATFORM_ICONS[pdir],
+                "label1": PLATFORM_LABELS[pdir][0],
+                "label2": PLATFORM_LABELS[pdir][1],
+                "contents": cls, "comments": cms,
+                "cf": cf, "cmf": cmf,
+                "content_map": cmap,
+                "keywords": kw if kw else 'N/A',
+                "content_files": gf.get('content_files', []), "comment_files": gf.get('comment_files', []),
+            })
+
+# ── focus 过滤：支持 dy/douyin 双写 ──
+if _focus_platform and platforms:
+    focus_names = {_focus_platform}
+    # 平台别名映射（如 --focus=dy 也匹配目录名 douyin）
+    if _focus_platform == "dy": focus_names.add("douyin")
+    if _focus_platform == "bili": focus_names.add("bilibili")
+    if _focus_platform == "douyin": focus_names.add("dy")
+    if _focus_platform == "bilibili": focus_names.add("bili")
+    filtered = [p for p in platforms if p["platform"] in focus_names]
+    if filtered:
+        platforms = filtered
+        print(f"FOCUS={_focus_platform}")
 
 if not platforms:
     print("No data found.")
@@ -398,14 +532,14 @@ def build_platform_tab(plat):
             v_author = html_mod.escape(c.get('_content_author','?') or '?')
 
             if avatar:
-                avatar_html = f'<img class="comment-avatar" src="{avatar}" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+                avatar_html = f'<img class="comment-avatar" src="{html_mod.escape(avatar)}" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
             else:
                 initial = html_mod.escape(nickname[0]) if nickname else '?'
                 avatar_html = f'<div class="comment-avatar" style="background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold">{initial}</div>'
 
             source_html = ''
             if v_url and v_title:
-                source_html = f'<div class="comment-source">{p["emoji"]} <a href="{v_url}" target="_blank" title="{v_title}">{v_title}</a> · {v_author}</div>'
+                source_html = f'<div class="comment-source">{p["emoji"]} <a href="{html_mod.escape(v_url)}" target="_blank" title="{v_title}">{v_title}</a> · {v_author}</div>'
 
             parts.append(f'''<div class="comment-item">
       {avatar_html}
@@ -433,7 +567,7 @@ def build_platform_tab(plat):
         parts.append('</div></div>')
 
     # ★ 全部评论数据表
-    data_dir = os.path.join(DATA_ROOT, p["key"], "csv").replace("\\", "\\\\")
+    data_dir = os.path.join(DATA_ROOT, p["platform"]).replace("\\", "\\\\")
     parts.append(f'''
 <div class="section" id="all-data-{p['key']}">
   <h2>📋 全部评论数据 <span style="font-size:14px;color:var(--text2);font-weight:400">({len(comments)} 条，已全部加载)</span></h2>
@@ -496,16 +630,16 @@ window['renderTable_{p['key']}'] = function() {{
 
     if (q) {{
         data = data.filter(function(c) {{
-            return (c["{cmf.get('content','content')}"]||'').toLowerCase().indexOf(q) >= 0 ||
-                   (c["{cmf.get('nickname','nickname')}"]||'').toLowerCase().indexOf(q) >= 0 ||
+            return (c["{(cmf.get('content') or 'content')}"]||'').toLowerCase().indexOf(q) >= 0 ||
+                   (c["{(cmf.get('nickname') or 'nickname')}"]||'').toLowerCase().indexOf(q) >= 0 ||
                    (c._content_title||'').toLowerCase().indexOf(q) >= 0;
         }});
     }}
 
     if (sort === 'like') {{
-        data.sort(function(a,b){{ return (parseInt(b["{cmf.get('likes','like_count')}"])||0) - (parseInt(a["{cmf.get('likes','like_count')}"])||0); }});
+        data.sort(function(a,b){{ return (parseInt(b["{(cmf.get('likes') or 'like_count')}"])||0) - (parseInt(a["{(cmf.get('likes') or 'like_count')}"])||0); }});
     }} else if (sort === 'time') {{
-        data.sort(function(a,b){{ return (parseInt(b["{cmf.get('time','create_time')}"])||0) - (parseInt(a["{cmf.get('time','create_time')}"])||0); }});
+        data.sort(function(a,b){{ return (parseInt(b["{(cmf.get('time') or 'create_time')}"])||0) - (parseInt(a["{(cmf.get('time') or 'create_time')}"])||0); }});
     }}
 
     var tp = Math.ceil(data.length / ps) || 1;
@@ -516,12 +650,12 @@ window['renderTable_{p['key']}'] = function() {{
     var rows = [];
     for (var i = 0; i < pd.length; i++) {{
         var c = pd[i];
-        var nick = c["{cmf.get('nickname','nickname')}"] || '?';
-        var text = escHtml(c["{cmf.get('content','content')}"] || '');
-        var likes = parseInt(c["{cmf.get('likes','like_count')}"]) || 0;
-        var ts = parseInt(c["{cmf.get('time','create_time')}"]) || 0;
+        var nick = c["{(cmf.get('nickname') or 'nickname')}"] || '?';
+        var text = escHtml(c["{(cmf.get('content') or 'content')}"] || '');
+        var likes = parseInt(c["{(cmf.get('likes') or 'like_count')}"]) || 0;
+        var ts = parseInt(c["{(cmf.get('time') or 'create_time')}"]) || 0;
         var tstr = ts ? new Date(ts*1000).toLocaleString('zh-CN') : '-';
-        var av = avatarCell(c["{cmf.get('avatar','avatar')}"] || '', nick.charAt(0));
+        var av = avatarCell(c["{(cmf.get('avatar') or 'avatar')}"] || '', nick.charAt(0));
         var sl = srcLinkCell(c._content_title || '', c._content_url || '');
 
         rows.push('<tr>' +
@@ -582,20 +716,15 @@ parts.append(f'''<!DOCTYPE html>
 </div>
 ''')
 
-# 按聚焦平台排序（聚焦平台放首位）
-if _focus_platform and len(platforms) > 1:
-    for i, p in enumerate(platforms):
-        if p["key"] == _focus_platform:
-            platforms.insert(0, platforms.pop(i))
-            break
-    print(f"FOCUS={platforms[0]['key']}")
+# 按平台+日期排序，同平台新日期在前
+platforms.sort(key=lambda p: (p["platform"], p["crawl_type"], p["date"]), reverse=False)
 
 # 平台 tabs
 if len(platforms) > 1:
     parts.append('<div class="tabs">')
     for i, p in enumerate(platforms):
         active = ' active' if i == 0 else ''
-        parts.append(f'<button class="tab-btn{active}" onclick="switchTab(\'{p["key"]}\')">{p["emoji"]} {p["name"]}</button>')
+        parts.append(f'<button class="tab-btn{active}" id="btn-{p["key"]}" onclick="switchTab(\'{p["key"]}\')">{p["emoji"]} {p["name"]}</button>')
     parts.append('</div>')
 
 # 每个平台的面板
@@ -619,13 +748,10 @@ parts.append('''
 function switchTab(key) {
     document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
     document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-    (document.getElementById('panel-'+key)||{}).classList.add('active');
-    var btns = document.querySelectorAll('.tab-btn');
-    for (var i = 0; i < btns.length; i++) {
-        if (btns[i].textContent.indexOf(key.replace('bili','B站').replace('xhs','小红书').replace('dy','抖音').replace('ks','快手').replace('wb','微博').replace('tieba','贴吧').replace('zhihu','知乎').substring(0,2)) >= 0) {
-            btns[i].classList.add('active');
-        }
-    }
+    var panel = document.getElementById('panel-'+key);
+    if (panel) panel.classList.add('active');
+    var btn = document.getElementById('btn-'+key);
+    if (btn) btn.classList.add('active');
 }
 </script>
 ''')
@@ -639,11 +765,11 @@ html = ''.join(parts)
 # ── 保存 ──
 report_dir = os.path.join(PROJECT_DIR, "data", "reports")
 os.makedirs(report_dir, exist_ok=True)
-report_path = os.path.join(report_dir, f"report_{date_str}.html")
+report_path = os.path.join(report_dir, "report.html")
 with open(report_path, 'w', encoding='utf-8') as f:
     f.write(html)
 
-desktop_path = os.path.expanduser(f"~/Desktop/MediaCrawler_Report_{date_str}.html")
+desktop_path = os.path.expanduser("~/Desktop/MediaCrawler_Report.html")
 try:
     shutil.copy(report_path, desktop_path)
 except:

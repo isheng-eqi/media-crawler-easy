@@ -18,13 +18,13 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 # Basic configuration
-PLATFORM = "xhs"  # Platform, xhs | dy | ks | bili | wb | tieba | zhihu
+PLATFORM = "bili"  # Platform, xhs | dy | ks | bili | wb | tieba | zhihu
 
 # 是否使用海外版小红书 (rednote.com)
 # 开启后 API 走 webapi.rednote.com，cookie 域使用 .rednote.com
 XHS_INTERNATIONAL = False
 
-KEYWORDS = "编程副业,编程兼职"  # Keyword search configuration, separated by English commas
+KEYWORDS = "1"  # Keyword search configuration, separated by English commas
 LOGIN_TYPE = "qrcode"  # qrcode or phone or cookie
 COOKIES = ""
 CRAWLER_TYPE = (
@@ -80,11 +80,11 @@ BROWSER_LAUNCH_TIMEOUT = 60
 # 用户需要在 Chrome 中开启远程调试：chrome://inspect/#remote-debugging
 # 或者使用命令行参数启动 Chrome：--remote-debugging-port=9222
 # 这种方式反检测效果最好，因为直接使用用户真实浏览器的所有 Cookie、扩展和浏览历史
-CDP_CONNECT_EXISTING = True
+CDP_CONNECT_EXISTING = False
 
 # 程序结束时是否自动关闭浏览器
 # 设置为 False 可以保持浏览器运行，方便调试
-AUTO_CLOSE_BROWSER = True
+AUTO_CLOSE_BROWSER = False
 
 # Data saving type option configuration, supports: csv, db, json, jsonl, sqlite, excel, postgres. It is best to save to DB, with deduplication function.
 SAVE_DATA_OPTION = "jsonl"  # csv or db or json or jsonl or sqlite or excel or postgres
@@ -99,7 +99,7 @@ USER_DATA_DIR = "%s_user_data_dir"  # %s will be replaced by platform name
 START_PAGE = 1
 
 # Control the number of crawled videos/posts
-CRAWLER_MAX_NOTES_COUNT = 15
+CRAWLER_MAX_NOTES_COUNT = 1
 
 # Controlling the number of concurrent crawlers
 MAX_CONCURRENCY_NUM = 1
@@ -111,7 +111,7 @@ ENABLE_GET_MEIDAS = False
 ENABLE_GET_COMMENTS = True
 
 # Control the number of crawled first-level comments (single video/post)
-CRAWLER_MAX_COMMENTS_COUNT_SINGLENOTES = 10
+CRAWLER_MAX_COMMENTS_COUNT_SINGLENOTES = 1
 
 # Whether to enable the mode of crawling second-level comments. By default, crawling of second-level comments is not enabled.
 # If the old version of the project uses db, you need to refer to schema/tables.sql line 287 to add table fields.

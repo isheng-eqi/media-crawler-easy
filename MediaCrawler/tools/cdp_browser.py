@@ -52,7 +52,9 @@ class CDPBrowserManager:
             return
 
         def sync_cleanup():
-            """Synchronous cleanup function for atexit"""
+            """Synchronous cleanup function for atexit — respects AUTO_CLOSE_BROWSER config"""
+            if not config.AUTO_CLOSE_BROWSER:
+                return  # Keep browser open across sessions
             if self.launcher and self.launcher.browser_process:
                 utils.logger.info("[CDPBrowserManager] atexit: Cleaning up browser process")
                 self.launcher.cleanup()
@@ -65,7 +67,7 @@ class CDPBrowserManager:
         prev_sigterm = signal.getsignal(signal.SIGTERM)
 
         def signal_handler(signum, frame):
-            """Signal handler"""
+            """Signal handler — only kills browser on Ctrl+C if AUTO_CLOSE_BROWSER is True"""
             utils.logger.info(f"[CDPBrowserManager] Received signal {signum}, cleaning up browser process")
             if self.launcher and self.launcher.browser_process:
                 self.launcher.cleanup()
@@ -94,6 +96,12 @@ class CDPBrowserManager:
         self._cleanup_registered = True
         utils.logger.info("[CDPBrowserManager] Cleanup handlers registered")
 
+    # Playwright 1.60 CDP requires Chrome >= this version.
+    # Older versions cause connect_over_cdp() to fail, resulting in:
+    # Chrome opens → version check fails → cleanup kills Chrome → fallback reopens Chrome
+    # Checking BEFORE launch avoids this confusing double-open behavior.
+    MIN_CHROME_VERSION_FOR_CDP = 115
+
     async def launch_and_connect(
         self,
         playwright: Playwright,
@@ -109,22 +117,39 @@ class CDPBrowserManager:
                 # Connect to an existing browser that already has remote debugging enabled
                 return await self._connect_existing_browser(playwright, playwright_proxy, user_agent)
 
-            # 1. Detect browser path
+            # 1. Check Chrome version BEFORE launching (avoid kill-and-restart dance)
+            chrome_major = BrowserLauncher.get_browser_major_version()
+            if chrome_major > 0 and chrome_major < self.MIN_CHROME_VERSION_FOR_CDP:
+                raise RuntimeError(
+                    f"System Chrome version ({chrome_major}) is below minimum required "
+                    f"({self.MIN_CHROME_VERSION_FOR_CDP}) for CDP mode. "
+                    f"Falling back to Playwright-managed Chromium. "
+                    f"Tip: update Chrome to avoid this fallback."
+                )
+
+            # 2. Detect browser path
             browser_path = await self._get_browser_path()
 
-            # 2. Get available port
+            if chrome_major > 0:
+                utils.logger.info(
+                    f"[CDPBrowserManager] System Chrome version {chrome_major} — "
+                    f"{'OK' if chrome_major >= self.MIN_CHROME_VERSION_FOR_CDP else 'TOO OLD'} "
+                    f"(minimum {self.MIN_CHROME_VERSION_FOR_CDP})"
+                )
+
+            # 3. Get available port
             self.debug_port = self.launcher.find_available_port(config.CDP_DEBUG_PORT)
 
-            # 3. Launch browser
+            # 4. Launch browser
             await self._launch_browser(browser_path, headless)
 
-            # 4. Register cleanup handlers (ensure cleanup on abnormal exit)
+            # 5. Register cleanup handlers (ensure cleanup on abnormal exit)
             self._register_cleanup_handlers()
 
-            # 5. Connect via CDP
+            # 6. Connect via CDP
             await self._connect_via_cdp(playwright)
 
-            # 6. Create browser context
+            # 7. Create browser context
             browser_context = await self._create_browser_context(
                 playwright_proxy, user_agent
             )

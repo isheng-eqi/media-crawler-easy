@@ -3,7 +3,7 @@
 ## 配置文件位置
 
 ```
-D:\study\MediaCrawler\config\
+<skill>/MediaCrawler/config/
 ├── base_config.py      ← 主配置（平台、模式、评论、保存格式等）
 ├── bilibili_config.py  ← B站专属（BV号列表、时间范围、创作者UID）
 ├── xhs_config.py       ← 小红书专属（笔记URL列表）
@@ -19,24 +19,24 @@ D:\study\MediaCrawler\config\
 
 | 配置项 | 类型 | 默认值 | 说明 | Q&A对应 |
 |--------|------|--------|------|---------|
-| `PLATFORM` | str | `"xhs"` | 平台: xhs\|dy\|ks\|bili\|wb\|tieba\|zhihu | 第1轮问题2 |
-| `KEYWORDS` | str | `"编程副业,编程兼职"` | 英文逗号分隔 | 第2A轮 |
+| `PLATFORM` | str | `"bili"` | 平台: xhs\|dy\|ks\|bili\|wb\|tieba\|zhihu | 第1轮 |
+| `KEYWORDS` | str | `"易经"` | 英文逗号分隔 | 第2轮(search) |
 | `LOGIN_TYPE` | str | `"qrcode"` | qrcode\|phone\|cookie | 固定qrcode |
-| `CRAWLER_TYPE` | str | `"search"` | search\|detail\|creator | 第1轮问题1 |
+| `CRAWLER_TYPE` | str | `"search"` | search\|detail\|creator | 第1轮 |
 | `ENABLE_IP_PROXY` | bool | `False` | 是否启用代理池 | 一般不改 |
-| `HEADLESS` | bool | `False` | 是否无头模式(不显示浏览器) | 固定False |
-| `SAVE_LOGIN_STATE` | bool | `True` | 保存登录状态免重复登录 | 固定True |
+| `HEADLESS` | bool | `False` | 是否无头模式 | 固定False |
+| `SAVE_LOGIN_STATE` | bool | `True` | 保存登录状态 | 固定True |
 | `ENABLE_CDP_MODE` | bool | `True` | 使用CDP连接真实浏览器 | 固定True |
-| `CDP_CONNECT_EXISTING` | bool | `True` | 连接已有浏览器 | 固定True |
+| `CDP_CONNECT_EXISTING` | bool | `False` | 连接已有浏览器 | 一般不改 |
 | `CDP_DEBUG_PORT` | int | `9222` | CDP调试端口 | 一般不改 |
-| `SAVE_DATA_OPTION` | str | `"jsonl"` | csv\|json\|jsonl\|sqlite\|excel\|postgres | 第4轮 |
-| `CRAWLER_MAX_NOTES_COUNT` | int | `15` | 最多爬多少视频/帖子 | 第2A/2B轮 |
-| `CRAWLER_MAX_COMMENTS_COUNT_SINGLENOTES` | int | `10` | 每个视频最多爬多少评论 | 第3轮问题1 |
+| `SAVE_DATA_OPTION` | str | `"jsonl"` | csv\|json\|jsonl\|sqlite\|excel\|postgres | 固定jsonl |
+| `CRAWLER_MAX_NOTES_COUNT` | int | `20` | 最多爬多少视频/帖子 | 第2轮 |
+| `CRAWLER_MAX_COMMENTS_COUNT_SINGLENOTES` | int | `30` | 每个视频最多爬多少评论 | 第3轮 |
 | `ENABLE_GET_COMMENTS` | bool | `True` | 是否爬评论 | 固定True |
-| `ENABLE_GET_SUB_COMMENTS` | bool | `False` | 是否爬二级评论(楼中楼) | 第3轮问题2 |
+| `ENABLE_GET_SUB_COMMENTS` | bool | `False` | 是否爬二级评论(楼中楼) | 第3轮 |
 | `ENABLE_GET_MEIDAS` | bool | `False` | 是否下载图片/视频 | 一般不改 |
-| `ENABLE_GET_WORDCLOUD` | bool | `False` | 是否生成词云 | 第3轮问题3 |
-| `CRAWLER_MAX_SLEEP_SEC` | int | `2` | 请求间隔(秒) | 第4轮 |
+| `ENABLE_GET_WORDCLOUD` | bool | `False` | 是否生成词云 | 第3轮 |
+| `CRAWLER_MAX_SLEEP_SEC` | int | `2` | 请求间隔(秒) | 第3轮 |
 | `MAX_CONCURRENCY_NUM` | int | `1` | 并发数 | 保持不变 |
 | `START_PAGE` | int | `1` | 起始页码 | 一般不改 |
 | `SAVE_DATA_PATH` | str | `""` | 保存路径(空=默认data目录) | 一般不改 |
@@ -45,8 +45,8 @@ D:\study\MediaCrawler\config\
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `BILI_SPECIFIED_ID_LIST` | list | `["BV1dwu...", "BV1Sz4..."]` | detail模式的BV号列表 |
-| `BILI_CREATOR_ID_LIST` | list | `["https://space.bilibili.com/434377496"]` | creator模式的UID/链接 |
+| `BILI_SPECIFIED_ID_LIST` | list | `[...]` | detail模式的BV号列表 |
+| `BILI_CREATOR_ID_LIST` | list | `[...]` | creator模式的UID/链接 |
 | `START_DAY` | str | `"2024-01-01"` | 起始日期 |
 | `END_DAY` | str | `"2024-01-01"` | 结束日期 |
 | `BILI_SEARCH_MODE` | str | `"normal"` | normal\|all_in_time_range\|daily_limit_in_time_range |
@@ -67,42 +67,46 @@ D:\study\MediaCrawler\config\
 ## 执行命令速查
 
 ```bash
-cd "D:/study/MediaCrawler"
+cd ~/.claude/skills/media-crawler-easy/MediaCrawler
 
 # B站 - 关键词搜索
-uv run main.py --platform bili --lt qrcode --type search
+python main.py --platform bili --lt qrcode --type search
 
 # B站 - 指定视频
-uv run main.py --platform bili --lt qrcode --type detail
+python main.py --platform bili --lt qrcode --type detail
 
 # B站 - 创作者主页
-uv run main.py --platform bili --lt qrcode --type creator
+python main.py --platform bili --lt qrcode --type creator
 
 # 小红书 - 关键词搜索
-uv run main.py --platform xhs --lt qrcode --type search
+python main.py --platform xhs --lt qrcode --type search
 
 # 抖音 - 关键词搜索
-uv run main.py --platform dy --lt qrcode --type search
+python main.py --platform dy --lt qrcode --type search
 
 # 微博 - 关键词搜索
-uv run main.py --platform wb --lt qrcode --type search
+python main.py --platform wb --lt qrcode --type search
 
 # 贴吧
-uv run main.py --platform tieba --lt qrcode --type search
+python main.py --platform tieba --lt qrcode --type search
 
 # 知乎
-uv run main.py --platform zhihu --lt qrcode --type search
+python main.py --platform zhihu --lt qrcode --type search
 
 # 快手
-uv run main.py --platform ks --lt qrcode --type search
+python main.py --platform ks --lt qrcode --type search
 ```
 
 ## 输出数据位置
 
 ```
-D:\study\MediaCrawler\data\
-├── bilibili\          ← B站数据
-├── xhs\               ← 小红书数据
-├── dy\                ← 抖音数据
-└── ...
+<skill>/MediaCrawler/data/
+├── bili/        ← B站数据
+├── xhs/         ← 小红书数据
+├── douyin/      ← 抖音数据
+├── ks/          ← 快手数据
+├── wb/          ← 微博数据
+├── tieba/       ← 贴吧数据
+├── zhihu/       ← 知乎数据
+└── reports/     ← HTML报告
 ```

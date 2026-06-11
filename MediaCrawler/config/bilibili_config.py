@@ -26,10 +26,7 @@ MAX_NOTES_PER_DAY = 1
 # - Full URL: "https://www.bilibili.com/video/BV1dwuKzmE26/?spm_id_from=333.1387.homepage.video_card.click"
 # - BV number: "BV1d54y1g7db"
 BILI_SPECIFIED_ID_LIST = [
-    "https://www.bilibili.com/video/BV1dwuKzmE26/?spm_id_from=333.1387.homepage.video_card.click",
-    "BV1Sz4y1U77N",
-    "BV14Q4y1n7jz",
-    # ........................
+    "https://www.bilibili.com/video/av116283152600094/?vd_source=d73534007c1e412a5df10ad1f8b375e5",
 ]
 
 # Specify the URL list of Bilibili creators (supports full URL or UID)
@@ -37,8 +34,7 @@ BILI_SPECIFIED_ID_LIST = [
 # - Full URL: "https://space.bilibili.com/434377496?spm_id_from=333.1007.0.0"
 # - UID: "20813884"
 BILI_CREATOR_ID_LIST = [
-    "https://space.bilibili.com/434377496?spm_id_from=333.1007.0.0",
-    "20813884",
+    "3546957196823339",
     # ........................
 ]
 

@@ -113,17 +113,26 @@ if errors:
     for e in errors:
         print(f"    {e}")
 
-# 保留的数据文件
-data_csv = os.path.join(PROJECT_DIR, "data", "bili", "csv")
-data_json = os.path.join(PROJECT_DIR, "data", "bili", "json")
-data_reports = os.path.join(PROJECT_DIR, "data", "bili", "reports")
+# 保留的数据文件（扫描所有平台目录，reports 单独列出）
 preserved = []
-for d in [data_csv, data_json, data_reports]:
-    if os.path.isdir(d):
-        sz = get_size(d)
-        preserved.append((os.path.basename(d), sz))
-    elif os.path.isfile(d):
-        preserved.append((os.path.basename(d), get_size(d)))
+data_dir_name = os.path.join(PROJECT_DIR, "data")
+if os.path.isdir(data_dir_name):
+    for pdir in sorted(os.listdir(data_dir_name)):
+        ppath = os.path.join(data_dir_name, pdir)
+        if not os.path.isdir(ppath): continue
+        if pdir == "reports": continue  # 下面单独处理
+        sz = 0
+        for root, dirs, files in os.walk(ppath):
+            for f in files:
+                if not f.endswith(('.tmp', '.temp', '.lock')):
+                    try: sz += os.path.getsize(os.path.join(root, f))
+                    except: pass
+        preserved.append((pdir, sz))
+# 报告
+report_dir = os.path.join(PROJECT_DIR, "data", "reports")
+if os.path.isdir(report_dir):
+    sz = get_size(report_dir)
+    preserved.append(("reports", sz))
 
 print(f"\n  {CYAN}保留数据文件:{RESET}")
 for name, sz in preserved:

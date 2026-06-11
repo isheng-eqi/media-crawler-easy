@@ -125,7 +125,7 @@ class BrowserLauncher:
         args = [
             browser_path,
             f"--remote-debugging-port={debug_port}",
-            "--remote-debugging-address=0.0.0.0",  # Allow remote access
+            "--remote-debugging-address=127.0.0.1",  # Bind to localhost only (avoid firewall popup on Windows)
             "--no-first-run",
             "--no-default-browser-check",
             "--disable-background-timer-throttling",
@@ -237,6 +237,57 @@ class BrowserLauncher:
 
         except Exception:
             return "Unknown Browser", "Unknown Version"
+
+    @staticmethod
+    def get_browser_major_version() -> int:
+        """
+        Get Chrome/Edge major version number.
+        Uses Windows registry (most reliable), falls back to --version parsing.
+        Returns 0 if undetectable.
+        """
+        import re
+
+        # Windows registry (most reliable, no encoding issues)
+        if platform.system() == "Windows":
+            try:
+                import winreg
+                for hkey in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+                    try:
+                        key = winreg.OpenKey(hkey, r"SOFTWARE\Google\Chrome\BLBeacon")
+                        version, _ = winreg.QueryValueEx(key, "version")
+                        winreg.CloseKey(key)
+                        major = int(version.split(".")[0])
+                        return major
+                    except (OSError, ValueError, IndexError):
+                        continue
+                # Edge fallback
+                try:
+                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Edge\BLBeacon")
+                    version, _ = winreg.QueryValueEx(key, "version")
+                    winreg.CloseKey(key)
+                    return int(version.split(".")[0])
+                except (OSError, ValueError, IndexError):
+                    pass
+            except Exception:
+                pass
+
+        # macOS / Linux / fallback: parse --version output
+        launcher = BrowserLauncher()
+        paths = launcher.detect_browser_paths()
+        if not paths:
+            launcher.__init__()  # reset to get fresh launcher
+            return 0
+        try:
+            result = subprocess.run(
+                [paths[0], "--version"],
+                capture_output=True, text=True, encoding="utf-8", errors="ignore", timeout=5
+            )
+            m = re.search(r"(\d+)\.", result.stdout.strip())
+            if m:
+                return int(m.group(1))
+        except Exception:
+            pass
+        return 0
 
     def cleanup(self):
         """

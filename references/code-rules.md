@@ -20,7 +20,7 @@ onclick="window.PAGE_{p["key"]}=..."
 python -c "
 import re, tempfile, subprocess, os, glob
 
-reports = sorted(glob.glob('MediaCrawler/data/reports/report_*.html'))
+reports = sorted(glob.glob('MediaCrawler/data/reports/report*.html'))
 if not reports: raise SystemExit('找不到报告文件')
 report = reports[-1]
 
@@ -33,9 +33,9 @@ with open(path, 'w', encoding='utf-8') as f:
 
 r = subprocess.run(['node', '--check', path], capture_output=True, text=True)
 if r.returncode == 0:
-    print('✅ JS 语法验证通过')
+    print('[PASS] JS syntax verification passed')
 else:
-    print('❌ JS 语法错误：')
+    print('[FAIL] JS syntax error:')
     print(r.stderr.strip())
     raise SystemExit(1)
 "

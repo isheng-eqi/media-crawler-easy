@@ -278,6 +278,28 @@ if chrome_found:
     step_ok()
     results["chrome_available"] = True
     results["chrome_path"] = chrome_found
+
+    # Check Chrome version (CDP needs >= 115, Playwright 1.60 needs >= ~125 for best compatibility)
+    try:
+        import winreg
+        chrome_major = 0
+        for hkey in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+            try:
+                key = winreg.OpenKey(hkey, r"SOFTWARE\Google\Chrome\BLBeacon")
+                version, _ = winreg.QueryValueEx(key, "version")
+                winreg.CloseKey(key)
+                chrome_major = int(version.split(".")[0])
+                break
+            except OSError:
+                continue
+        results["chrome_version"] = chrome_major
+        if chrome_major > 0 and chrome_major < 115:
+            results["warnings"].append(
+                f"Chrome 版本 {chrome_major} 过旧（最低需 115），CDP 模式将自动回退到 Playwright 托管的 Chromium。"
+                f"建议更新 Chrome 以避免此降级。"
+            )
+    except Exception:
+        pass
 else:
     # Edge fallback (Windows only)
     edge_found = None
