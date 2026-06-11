@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
 
 # IDE
 .idea/
@@ -33,3 +34,6 @@ temp_image/
 
 # Database files
 *.db
+
+# Sensitive config
+*.secret
