@@ -66,11 +66,11 @@ MediaCrawler 是一个 Claude Code Skill（基于开源项目 [NanmiCoder/MediaC
 
 ### 报告首页
 
-![f2fec11a7e56481c232cbc967f7740e4](C:\Users\HI\Documents\Tencent Files\15772650\nt_qq\nt_data\Pic\2026-06\Ori\f2fec11a7e56481c232cbc967f7740e4.png)
+![报告首页概览](MediaCrawler/docs/static/images/easy_report_home_1.png)
 
-![614c8aa28690b55143971a6ea2c0233c](C:\Users\HI\Documents\Tencent Files\15772650\nt_qq\nt_data\Pic\2026-06\Ori\614c8aa28690b55143971a6ea2c0233c.png)
+![报告数据详情](MediaCrawler/docs/static/images/easy_report_home_2.png)
 
-![eed9222b756b95c71de362a701d3c5fb](C:\Users\HI\Documents\Tencent Files\15772650\nt_qq\nt_data\Pic\2026-06\Ori\eed9222b756b95c71de362a701d3c5fb.png)
+![报告评论展示](MediaCrawler/docs/static/images/easy_report_home_3.png)
 
 
 
