@@ -1,0 +1,39 @@
+{
+  "name": "media-crawler-easy",
+  "owner": {
+    "name": "isheng-eqi",
+    "url": "https://github.com/isheng-eqi"
+  },
+  "metadata": {
+    "description": "Claude Code plugin that collects public comments from seven Chinese social platforms and turns them into an interactive HTML report.",
+    "version": "2.2.0"
+  },
+  "plugins": [
+    {
+      "name": "media-crawler-easy",
+      "source": "./",
+      "displayName": "MediaCrawler Easy",
+      "description": "Collect public comments from Bilibili, Xiaohongshu, Douyin, Kuaishou, Weibo, Tieba and Zhihu, then generate an interactive HTML report plus CSV/JSONL data.",
+      "version": "2.2.0",
+      "author": {
+        "name": "isheng-eqi",
+        "url": "https://github.com/isheng-eqi"
+      },
+      "homepage": "https://github.com/isheng-eqi/media-crawler-easy",
+      "repository": "https://github.com/isheng-eqi/media-crawler-easy",
+      "license": "MIT",
+      "category": "data",
+      "tags": [
+        "crawler",
+        "social-media",
+        "comments"
+      ],
+      "keywords": [
+        "crawler",
+        "social-media",
+        "comments",
+        "data-collection"
+      ]
+    }
+  ]
+}

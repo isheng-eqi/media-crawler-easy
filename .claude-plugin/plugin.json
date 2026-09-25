@@ -1,0 +1,21 @@
+{
+  "name": "media-crawler-easy",
+  "description": "Collect public comments from Bilibili, Xiaohongshu, Douyin, Kuaishou, Weibo, Tieba and Zhihu from inside Claude Code, then generate an interactive HTML report plus CSV/JSONL data.",
+  "version": "2.2.0",
+  "author": {
+    "name": "isheng-eqi",
+    "url": "https://github.com/isheng-eqi"
+  },
+  "homepage": "https://github.com/isheng-eqi/media-crawler-easy",
+  "repository": "https://github.com/isheng-eqi/media-crawler-easy",
+  "license": "MIT",
+  "keywords": [
+    "crawler",
+    "social-media",
+    "comments",
+    "data-collection",
+    "xiaohongshu",
+    "douyin",
+    "bilibili"
+  ]
+}

@@ -16,7 +16,11 @@ dependencies: "python>=3.10, git, chrome-or-edge, node>=16"
 
 # MediaCrawler 多平台采集助手
 
-基于 [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) (⭐30K+)，7 大平台社媒数据采集。
+基于 [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) (上游 65K+ star)，7 大平台社媒数据采集。
+
+> 目录约定：下文 `<skill>` 指本 SKILL.md 所在的目录。
+> 插件方式安装时它等于 `${CLAUDE_PLUGIN_ROOT}`；手动 clone 安装时它等于 `~/.claude/skills/media-crawler-easy`。
+> 脚本内部路径是相对自身解析的，不依赖具体安装位置。
 
 ## ⚠️ 关键约束
 
@@ -73,7 +77,7 @@ A. 关键词搜索  B. 指定链接  C. 创作者主页
 ## ② 环境搭建
 
 ```bash
-cd ~/.claude/skills/media-crawler-easy && python scripts/env_setup.py
+cd <skill> && python scripts/env_setup.py
 ```
 
 报结论即可。有 FAIL 先修再继续；不确定错误查 `references/env-troubleshooting.md`。
@@ -95,7 +99,7 @@ Edit 修改 `config/base_config.py`：`PLATFORM`, `KEYWORDS`, `CRAWLER_TYPE`, `C
 用 `run_in_background: true` 启动，每 20-30 秒检查日志。
 
 ```bash
-cd ~/.claude/skills/media-crawler-easy/MediaCrawler
+cd <skill>/MediaCrawler
 python main.py --platform <代码> --lt qrcode --type <模式>
 ```
 
@@ -126,7 +130,7 @@ python main.py --platform <代码> --lt qrcode --type <模式>
 ### 步骤 1：生成（不自动打开）
 
 ```bash
-cd ~/.claude/skills/media-crawler-easy
+cd <skill>
 python scripts/generate_report.py --no-open
 ```
 
@@ -159,7 +163,7 @@ else:
 ### 步骤 3：验证通过，重新生成并自动打开
 
 ```bash
-cd ~/.claude/skills/media-crawler-easy
+cd <skill>
 python scripts/generate_report.py
 ```
 
@@ -172,7 +176,7 @@ python scripts/generate_report.py
 汇报采集量、数据路径、报告路径。AskUserQuestion 询问：清理临时文件？选项：「清理（推荐）」/「暂不清理」。选清理执行：
 
 ```bash
-python ~/.claude/skills/media-crawler-easy/scripts/cleanup.py
+python <skill>/scripts/cleanup.py
 ```
 
 ---

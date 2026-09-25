@@ -28,7 +28,16 @@
 
 两步。
 
-第一步，把仓库放进你的 skills 目录：
+第一步，安装。两种方式二选一。
+
+方式 A 作为插件安装（推荐，之后能跟随仓库更新）。在 Claude Code 里执行两条命令：
+
+```
+/plugin marketplace add isheng-eqi/media-crawler-easy
+/plugin install media-crawler-easy@media-crawler-easy
+```
+
+方式 B 直接 clone 到 skills 目录（适合手动管理，或其他遵循 Agent Skills 约定的助手）：
 
 ```bash
 # macOS / Linux
@@ -40,7 +49,7 @@ git clone https://github.com/isheng-eqi/media-crawler-easy ~/.claude/skills/medi
 git clone https://github.com/isheng-eqi/media-crawler-easy $env:USERPROFILE\.claude\skills\media-crawler-easy
 ```
 
-第二步，打开 Claude Code，直接说：
+第二部分，打开 Claude Code，直接说：
 
 ```
 帮我爬小红书「考研二战」的笔记评论
@@ -175,11 +184,14 @@ Windows 上如果安装 `opencv-python` 报 `Microsoft Visual C++ 14.0 is requir
 
 本项目构建在 [NanmiCoder/MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) 之上。`MediaCrawler/` 目录保留了上游的完整代码与协议，这样使用者不需要自己处理环境配置。上游解决的问题是这个项目存在的前提，本项目只重做了它外面那一圈交互。
 
-`SKILL.md` 采用通用的 Agent Skills 形态（说明文件 + 参考文件 + 脚本），目前只在 Claude Code 上验证过；其他遵循同一约定的编程助手理论上可以复用同一份文件，但安装路径与触发机制各不相同。
+`SKILL.md` 采用通用的 Agent Skills 形态（说明文件 + 参考文件 + 脚本），目前只在 Claude Code 上验证过；其他遵循同一约定的编程助手理论上可以复用同一份文件，但安装路径与触发机制各不相同。技能内部不写死安装路径：脚本按自身位置解析数据目录，`SKILL.md` 里的目录以「本文件所在目录」表述，因此插件安装和 clone 安装都能正常工作。
+
+仓库同时是一个 Claude Code 插件市场（`.claude-plugin/marketplace.json`），因此可用 `/plugin marketplace add isheng-eqi/media-crawler-easy` 直接安装；插件的清单文件是 `.claude-plugin/plugin.json`。
 
 相关文件：
 
 - `SKILL.md` —— Skill 主文件，Agent 的执行流程
+- `.claude-plugin/` —— 插件清单与插件市场目录，供 `/plugin marketplace add` 使用
 - `references/` —— 环境排错、已知问题、报告模板改法、配置项说明
 - `scripts/env_setup.py` —— 环境检测与修复
 - `scripts/generate_report.py` —— 报告生成器
